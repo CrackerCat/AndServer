@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Yan Zhenjie.
+ * Copyright 2018 Zhenjie Yan.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +15,8 @@
  */
 package com.yanzhenjie.andserver.framework.body;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.yanzhenjie.andserver.http.ResponseBody;
 import com.yanzhenjie.andserver.util.IOUtils;
@@ -25,10 +25,11 @@ import com.yanzhenjie.andserver.util.MediaType;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 
 /**
- * Created by YanZhenjie on 2018/8/6.
+ * Created by Zhenjie Yan on 2018/8/6.
  */
 public class FileBody implements ResponseBody {
 
@@ -39,6 +40,11 @@ public class FileBody implements ResponseBody {
             throw new IllegalArgumentException("The file cannot be null.");
         }
         this.mBody = body;
+    }
+
+    @Override
+    public boolean isRepeatable() {
+        return true;
     }
 
     @Override
@@ -54,6 +60,8 @@ public class FileBody implements ResponseBody {
 
     @Override
     public void writeTo(@NonNull OutputStream output) throws IOException {
-        IOUtils.write(new FileInputStream(mBody), output);
+        InputStream is = new FileInputStream(mBody);
+        IOUtils.write(is, output);
+        IOUtils.closeQuietly(is);
     }
 }

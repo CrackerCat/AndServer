@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Yan Zhenjie.
+ * Copyright 2018 Zhenjie Yan.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,12 +15,11 @@
  */
 package com.yanzhenjie.andserver.http;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.yanzhenjie.andserver.http.cookie.Cookie;
 import com.yanzhenjie.andserver.http.session.Session;
-import com.yanzhenjie.andserver.util.HttpHeaders;
 import com.yanzhenjie.andserver.util.MediaType;
 import com.yanzhenjie.andserver.util.MultiValueMap;
 
@@ -29,11 +28,55 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Created by YanZhenjie on 2018/6/12.
+ * Created by Zhenjie Yan on 2018/6/12.
  */
 public interface HttpRequest extends HttpContext, HttpHeaders {
 
     String SESSION_NAME = "ASESSIONID";
+
+    /**
+     * Returns the host name of the Internet Protocol (IP) interface on which the request was received.
+     *
+     * @return a <code>String</code> containing the host name of the IP on which the request was received.
+     */
+    String getLocalName();
+
+    /**
+     * The default behavior of this method is to return getLocalAddr() on the wrapped request object.
+     */
+    String getLocalAddr();
+
+    /**
+     * Returns the Internet Protocol (IP) port number of the interface on which the request was received.
+     *
+     * @return an integer specifying the port number
+     */
+    int getLocalPort();
+
+    /**
+     * Returns the Internet Protocol (IP) address of the client or last proxy that sent the request.
+     * For HTTP servlets, same as the value of the CGI variable <code>REMOTE_ADDR</code>.
+     *
+     * @return a <code>String</code> containing the IP address of the client that sent the request
+     */
+    String getRemoteAddr();
+
+    /**
+     * Returns the fully qualified name of the client or the last proxy that sent the request.
+     * If the engine cannot or chooses not to resolve the hostname (to improve performance), this method returns the
+     * dotted-string form of the IP address. For HTTP servlets, same as the value of the CGI variable
+     * <code>REMOTE_HOST</code>.
+     *
+     * @return a <code>String</code> containing the fully qualified name of the client
+     */
+    String getRemoteHost();
+
+    /**
+     * Returns the Internet Protocol (IP) source port of the client or last proxy that sent the request.
+     *
+     * @return an integer specifying the port number
+     */
+    int getRemotePort();
 
     /**
      * Returns {@link HttpMethod} with which this request was made.
@@ -100,8 +143,7 @@ public interface HttpRequest extends HttpContext, HttpHeaders {
      * Returns {@link MultiValueMap} of the query parameters of this request, or empty {@link MultiValueMap} if there
      * are no query parameters.
      *
-     * @return a {@link MultiValueMap} containing query parameter names as keys and query parameter values as map
-     *     values.
+     * @return a {@link MultiValueMap} containing query parameter names as keys and query parameter values as map values.
      */
     @NonNull
     MultiValueMap<String, String> getQuery();
@@ -309,8 +351,7 @@ public interface HttpRequest extends HttpContext, HttpHeaders {
     Session getValidSession();
 
     /**
-     * Returns the current session associated with this request, or if the request does not have a session, creates
-     * one.
+     * Returns the current session associated with this request, or if the request does not have a session, creates one.
      *
      * @see #getValidSession()
      */

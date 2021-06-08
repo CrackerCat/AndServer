@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Yan Zhenjie.
+ * Copyright 2018 Zhenjie Yan.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,17 +16,17 @@
 package com.yanzhenjie.andserver.sample.util;
 
 import android.os.Environment;
+import android.text.TextUtils;
 import android.webkit.MimeTypeMap;
 
 import com.yanzhenjie.andserver.http.multipart.MultipartFile;
 import com.yanzhenjie.andserver.sample.App;
-import com.yanzhenjie.andserver.util.StringUtils;
 
 import java.io.File;
 import java.util.UUID;
 
 /**
- * Created by YanZhenjie on 2018/6/9.
+ * Created by Zhenjie Yan on 2018/6/9.
  */
 public class FileUtils {
 
@@ -39,7 +39,7 @@ public class FileUtils {
      */
     public static File createRandomFile(MultipartFile file) {
         String extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(file.getContentType().toString());
-        if (StringUtils.isEmpty(extension)) {
+        if (TextUtils.isEmpty(extension)) {
             extension = MimeTypeMap.getFileExtensionFromUrl(file.getFilename());
         }
         String uuid = UUID.randomUUID().toString();

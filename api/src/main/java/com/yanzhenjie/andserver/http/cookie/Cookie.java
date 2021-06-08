@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Yan Zhenjie.
+ * Copyright 2018 Zhenjie Yan.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,16 +15,16 @@
  */
 package com.yanzhenjie.andserver.http.cookie;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import android.text.TextUtils;
 
-import com.yanzhenjie.andserver.util.StringUtils;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import java.io.Serializable;
 import java.util.Locale;
 
 /**
- * Created by YanZhenjie on 2018
+ * Created by Zhenjie Yan on 2018
  */
 public class Cookie implements Cloneable, Serializable {
 
@@ -63,7 +63,7 @@ public class Cookie implements Cloneable, Serializable {
      * @see #setVersion(int)
      */
     public Cookie(@NonNull String name, @Nullable String value) {
-        if (StringUtils.isEmpty(name)) {
+        if (TextUtils.isEmpty(name)) {
             throw new IllegalArgumentException("The name of the cookie cannot be empty or null.");
         }
         if (!isToken(name) || name.equalsIgnoreCase("Comment") || // rfc2019
@@ -117,7 +117,7 @@ public class Cookie implements Cloneable, Serializable {
      * @see #getDomain()
      */
     public void setDomain(@Nullable String domain) {
-        if (!StringUtils.isEmpty(domain)) {
+        if (!TextUtils.isEmpty(domain)) {
             this.domain = domain.toLowerCase(Locale.ENGLISH); // IE allegedly needs this.
         } else {
             this.domain = null;

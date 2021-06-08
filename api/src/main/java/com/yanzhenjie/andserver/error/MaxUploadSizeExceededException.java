@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Yan Zhenjie.
+ * Copyright 2018 Zhenjie Yan.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,12 +15,12 @@
  */
 package com.yanzhenjie.andserver.error;
 
-import com.yanzhenjie.andserver.util.StatusCode;
+import com.yanzhenjie.andserver.http.StatusCode;
 
 /**
- * Created by YanZhenjie on 2018/8/9.
+ * Created by Zhenjie Yan on 2018/8/9.
  */
-public class MaxUploadSizeExceededException extends BasicException {
+public class MaxUploadSizeExceededException extends HttpException {
 
     private final long mMaxSize;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Yan Zhenjie.
+ * Copyright 2018 Zhenjie Yan.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import java.io.Serializable;
 import java.util.Comparator;
 
 /**
- * Created by YanZhenjie on 2018/7/11.
+ * Created by Zhenjie Yan on 2018/7/11.
  */
 public class InvertibleComparator<T> implements Comparator<T>, Serializable {
 
@@ -100,7 +100,7 @@ public class InvertibleComparator<T> implements Comparator<T>, Serializable {
         if (!(obj instanceof InvertibleComparator)) {
             return false;
         }
-        InvertibleComparator<T> other = (InvertibleComparator<T>)obj;
+        InvertibleComparator<T> other = (InvertibleComparator<T>) obj;
         return (this.comparator.equals(other.comparator) && this.ascending == other.ascending);
     }
 

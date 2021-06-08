@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Yan Zhenjie.
+ * Copyright 2018 Zhenjie Yan.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,71 +15,109 @@
  */
 package com.yanzhenjie.andserver.framework.handler;
 
-import android.support.annotation.NonNull;
+import android.text.TextUtils;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.yanzhenjie.andserver.error.ContentNotAcceptableException;
 import com.yanzhenjie.andserver.error.ContentNotSupportedException;
 import com.yanzhenjie.andserver.error.HeaderValidateException;
 import com.yanzhenjie.andserver.error.MethodNotSupportException;
 import com.yanzhenjie.andserver.error.ParamValidateException;
+import com.yanzhenjie.andserver.framework.mapping.Mapping;
+import com.yanzhenjie.andserver.framework.mapping.Mime;
+import com.yanzhenjie.andserver.framework.mapping.Pair;
+import com.yanzhenjie.andserver.framework.mapping.Path;
 import com.yanzhenjie.andserver.http.HttpContext;
 import com.yanzhenjie.andserver.http.HttpMethod;
 import com.yanzhenjie.andserver.http.HttpRequest;
-import com.yanzhenjie.andserver.mapping.Mapping;
-import com.yanzhenjie.andserver.mapping.Mime;
-import com.yanzhenjie.andserver.mapping.Pair;
-import com.yanzhenjie.andserver.mapping.Path;
 import com.yanzhenjie.andserver.util.MediaType;
 import com.yanzhenjie.andserver.util.Patterns;
-import com.yanzhenjie.andserver.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Created by YanZhenjie on 2018/9/8.
+ * Created by Zhenjie Yan on 2018/9/8.
  */
 public abstract class MappingAdapter implements HandlerAdapter, Patterns {
 
     @Override
     public boolean intercept(@NonNull HttpRequest request) {
-        String httpPath = request.getPath();
-        HttpMethod httpMethod = request.getMethod();
-        List<Mapping> mappings = getMappings(httpPath);
-        if (mappings.isEmpty()) return false;
+        List<Path.Segment> pathSegments = Path.pathToList(request.getPath());
 
-        Mapping mapping = validateMethod(mappings, httpMethod);
+        List<Mapping> mappings = getExactMappings(pathSegments);
+        if (mappings.isEmpty()) {
+            mappings = getBlurredMappings(pathSegments);
+        }
+        if (mappings.isEmpty()) {
+            return false;
+        }
+
+        HttpMethod method = request.getMethod();
+        if (method.equals(HttpMethod.OPTIONS)) {
+            return true;
+        }
+
+        Mapping mapping = MappingAdapter.findMappingByMethod(mappings, method);
+        if (mapping == null) {
+            MethodNotSupportException exception = new MethodNotSupportException(method);
+            List<HttpMethod> methods = MappingAdapter.findSupportMethods(mappings);
+            exception.setMethods(methods);
+            throw exception;
+        }
 
         Pair param = mapping.getParam();
-        if (param != null) validateParams(param, request);
+        if (param != null) {
+            validateParams(param, request);
+        }
 
         Pair header = mapping.getHeader();
-        if (header != null) validateHeaders(header, request);
+        if (header != null) {
+            validateHeaders(header, request);
+        }
 
         Mime consume = mapping.getConsume();
-        if (consume != null) validateConsume(consume, request);
+        if (consume != null) {
+            validateConsume(consume, request);
+        }
 
         Mime produce = mapping.getProduce();
-        if (produce != null) validateProduce(produce, request);
+        if (produce != null) {
+            validateProduce(produce, request);
+        }
 
         return true;
     }
 
+    @Nullable
     @Override
     public RequestHandler getHandler(@NonNull HttpRequest request) {
-        String httpPath = request.getPath();
-        HttpMethod httpMethod = request.getMethod();
-        List<Mapping> mappings = getMappings(httpPath);
-        if (mappings.isEmpty()) return null;
+        List<Path.Segment> pathSegments = Path.pathToList(request.getPath());
 
-        Mapping mapping = validateMethod(mappings, httpMethod);
+        List<Mapping> mappings = getExactMappings(pathSegments);
+        if (mappings.isEmpty()) {
+            mappings = getBlurredMappings(pathSegments);
+        }
+
+        HttpMethod method = request.getMethod();
+        Mapping mapping = MappingAdapter.findMappingByMethod(mappings, method);
+
+        if (method.equals(HttpMethod.OPTIONS) && mapping == null) {
+            return new OptionsHandler(request, mappings, getMappingMap());
+        }
+
+        if (mapping == null) {
+            return null;
+        }
 
         Mime mime = mapping.getProduce();
         if (mime != null) {
             List<Mime.Rule> produces = mime.getRuleList();
             MediaType mediaType = null;
-            for (Mime.Rule produce : produces) {
+            for (Mime.Rule produce: produces) {
                 String text = produce.toString();
                 if (!text.startsWith("!")) {
                     mediaType = produce;
@@ -88,60 +126,70 @@ public abstract class MappingAdapter implements HandlerAdapter, Patterns {
             }
             request.setAttribute(HttpContext.RESPONSE_PRODUCE_TYPE, mediaType);
         }
+
         return getMappingMap().get(mapping);
     }
 
-    /**
-     * Get the mapping corresponding to the path.
-     *
-     * @param httpPath http path.
-     *
-     * @return a {@link Mapping} object, or {@code null} if the path is not mapped.
-     */
-    @NonNull
-    private List<Mapping> getMappings(String httpPath) {
-        List<Mapping> returned = new ArrayList<>();
-        List<Path.Segment> httpSegments = Path.pathToList(httpPath);
-        Map<Mapping, RequestHandler> mappings = getMappingMap();
-        for (Mapping mapping : mappings.keySet()) {
-            List<Path.Rule> paths = mapping.getPath().getRuleList();
-            for (Path.Rule path : paths) {
-                List<Path.Segment> segments = path.getSegments();
-                if (httpSegments.size() != segments.size()) continue;
+    private List<Mapping> getExactMappings(List<Path.Segment> httpSegments) {
+        List<Mapping> mappings = new ArrayList<>();
 
-                String pathStr = Path.listToPath(segments);
-                if (pathStr.equals(httpPath)) {
-                    returned.add(mapping);
-                    break; // Validate next mapping.
+        Map<Mapping, RequestHandler> mappingMap = getMappingMap();
+        for (Mapping mapping: mappingMap.keySet()) {
+            Path path = mapping.getPath();
+            List<Path.Rule> rules = path.getRuleList();
+            for (Path.Rule rule: rules) {
+                if (matchExactPath(rule.getSegments(), httpSegments)) {
+                    mappings.add(mapping);
                 }
-
-                boolean matches = true;
-                for (int i = 0; i < segments.size(); i++) {
-                    Path.Segment segment = segments.get(i);
-                    if (!segment.equals(httpSegments.get(i)) && !segment.isBlurred()) {
-                        matches = false;
-                        break;
-                    }
-                }
-                if (matches) returned.add(mapping);
             }
         }
-        return returned;
+        return mappings;
     }
 
-    private Mapping validateMethod(List<Mapping> mappings, HttpMethod httpMethod) {
-        for (Mapping mapping : mappings) {
-            List<HttpMethod> mappingMethods = mapping.getMethod().getRuleList();
-            if (mappingMethods.contains(httpMethod)) {
-                return mapping;
+    private boolean matchExactPath(List<Path.Segment> segments, List<Path.Segment> httpSegments) {
+        if (httpSegments.size() != segments.size()) {
+            return false;
+        }
+
+        if (Path.listToPath(segments).equals(Path.listToPath(httpSegments))) {
+            return true;
+        }
+        return false;
+    }
+
+    private List<Mapping> getBlurredMappings(List<Path.Segment> httpSegments) {
+        List<Mapping> mappings = new ArrayList<>();
+
+        Map<Mapping, RequestHandler> mappingMap = getMappingMap();
+        for (Mapping mapping: mappingMap.keySet()) {
+            Path path = mapping.getPath();
+            List<Path.Rule> rules = path.getRuleList();
+            for (Path.Rule rule: rules) {
+                if (matchBlurredPath(rule.getSegments(), httpSegments)) {
+                    mappings.add(mapping);
+                }
             }
         }
-        throw new MethodNotSupportException(httpMethod);
+        return mappings;
+    }
+
+    private boolean matchBlurredPath(List<Path.Segment> segments, List<Path.Segment> httpSegments) {
+        if (httpSegments.size() != segments.size()) {
+            return false;
+        }
+
+        for (int i = 0; i < segments.size(); i++) {
+            Path.Segment segment = segments.get(i);
+            if (!segment.equals(httpSegments.get(i)) && !segment.isBlurred()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void validateParams(Pair param, HttpRequest request) {
         List<Pair.Rule> rules = param.getRuleList();
-        for (Pair.Rule rule : rules) {
+        for (Pair.Rule rule: rules) {
             String key = rule.getKey();
             List<String> keys = request.getParameterNames();
             String value = rule.getValue();
@@ -155,12 +203,12 @@ public abstract class MappingAdapter implements HandlerAdapter, Patterns {
                     throw new ParamValidateException(
                         String.format("The value of parameter %s cannot be %s.", key, value));
                 }
-            } else if (!StringUtils.isEmpty(key) && !StringUtils.isEmpty(value)) {
+            } else if (!TextUtils.isEmpty(key) && !TextUtils.isEmpty(value)) {
                 if (!keys.contains(key) || !values.contains(value)) {
                     throw new ParamValidateException(
                         String.format("The value of parameter %s is missing or wrong.", key));
                 }
-            } else if (!StringUtils.isEmpty(key) && StringUtils.isEmpty(value)) {
+            } else if (!TextUtils.isEmpty(key) && TextUtils.isEmpty(value)) {
                 if (!keys.contains(key)) {
                     throw new ParamValidateException(String.format("The parameter %s is missing.", key));
                 }
@@ -170,7 +218,7 @@ public abstract class MappingAdapter implements HandlerAdapter, Patterns {
 
     private void validateHeaders(Pair header, HttpRequest request) {
         List<Pair.Rule> rules = header.getRuleList();
-        for (Pair.Rule rule : rules) {
+        for (Pair.Rule rule: rules) {
             String key = rule.getKey();
             List<String> keys = request.getHeaderNames();
             String value = rule.getValue();
@@ -184,10 +232,10 @@ public abstract class MappingAdapter implements HandlerAdapter, Patterns {
                     throw new HeaderValidateException(
                         String.format("The value of header %s cannot be %s.", key, value));
                 }
-            } else if (!StringUtils.isEmpty(key) && !StringUtils.isEmpty(value) &&
+            } else if (!TextUtils.isEmpty(key) && !TextUtils.isEmpty(value) &&
                 (!keys.contains(key) || !values.contains(value))) {
                 throw new HeaderValidateException(String.format("The value of header %s is missing or wrong.", key));
-            } else if (!StringUtils.isEmpty(key) && StringUtils.isEmpty(value)) {
+            } else if (!TextUtils.isEmpty(key) && TextUtils.isEmpty(value)) {
                 if (!keys.contains(key)) {
                     throw new HeaderValidateException(String.format("The header %s is missing.", key));
                 }
@@ -198,7 +246,9 @@ public abstract class MappingAdapter implements HandlerAdapter, Patterns {
     private void validateConsume(Mime mime, HttpRequest request) {
         List<Mime.Rule> rules = mime.getRuleList();
         MediaType contentType = request.getContentType();
-        for (Mime.Rule rule : rules) {
+
+        List<MediaType> includeType = new ArrayList<>();
+        for (Mime.Rule rule: rules) {
             String type = rule.getType();
             boolean nonContent = type.startsWith("!");
             if (nonContent) {
@@ -211,17 +261,26 @@ public abstract class MappingAdapter implements HandlerAdapter, Patterns {
                     throw new ContentNotSupportedException(contentType);
                 }
             } else {
-                if (contentType == null || !contentType.includes(consume)) {
-                    throw new ContentNotSupportedException(contentType);
-                }
+                includeType.add(consume);
             }
+        }
+
+        boolean included = false;
+        for (MediaType mediaType: includeType) {
+            if (mediaType.includes(contentType)) {
+                included = true;
+                break;
+            }
+        }
+        if (!included) {
+            throw new ContentNotSupportedException(contentType);
         }
     }
 
     private void validateProduce(Mime mime, HttpRequest request) {
         List<Mime.Rule> rules = mime.getRuleList();
         List<MediaType> accepts = request.getAccepts();
-        for (Mime.Rule rule : rules) {
+        for (Mime.Rule rule: rules) {
             String type = rule.getType();
             boolean nonContent = type.startsWith("!");
             if (nonContent) {
@@ -230,7 +289,7 @@ public abstract class MappingAdapter implements HandlerAdapter, Patterns {
             MediaType produce = new MediaType(type, rule.getSubtype());
 
             boolean exclude = false;
-            for (MediaType accept : accepts) {
+            for (MediaType accept: accepts) {
                 if (accept.includes(produce)) {
                     exclude = true;
                 }
@@ -259,4 +318,21 @@ public abstract class MappingAdapter implements HandlerAdapter, Patterns {
      */
     @NonNull
     protected abstract Object getHost();
+
+    public static List<HttpMethod> findSupportMethods(List<Mapping> mappings) {
+        List<HttpMethod> methods = new ArrayList<>();
+        for (Mapping child: mappings) {
+            methods.addAll(child.getMethod().getRuleList());
+        }
+        return methods;
+    }
+
+    public static Mapping findMappingByMethod(List<Mapping> mappings, HttpMethod method) {
+        for (Mapping child: mappings) {
+            if (child.getMethod().getRuleList().contains(method)) {
+                return child;
+            }
+        }
+        return null;
+    }
 }

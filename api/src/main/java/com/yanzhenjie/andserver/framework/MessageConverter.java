@@ -1,5 +1,5 @@
 /*
- * Copyright © 2018 YanZhenjie.
+ * Copyright © 2018 Zhenjie Yan.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +15,8 @@
  */
 package com.yanzhenjie.andserver.framework;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.yanzhenjie.andserver.framework.view.ViewResolver;
 import com.yanzhenjie.andserver.http.ResponseBody;
@@ -27,18 +27,19 @@ import java.io.InputStream;
 import java.lang.reflect.Type;
 
 /**
- * Created by YanZhenjie on 2018/9/6.
+ * Created by Zhenjie Yan on 2018/9/6.
  */
 public interface MessageConverter {
 
     /**
      * Convert a specific output to the response body. Some of the return values of handlers that cannot be recognized
-     * by {@link ViewResolver} require a message converter to be converted to a response body.
+     * by
+     * {@link ViewResolver} require a message converter to be converted to a response body.
      *
      * @param output output of handle.
      * @param mediaType the content media type specified by the handler.
      */
-    ResponseBody convert(@NonNull Object output, @Nullable MediaType mediaType);
+    ResponseBody convert(@Nullable Object output, @Nullable MediaType mediaType);
 
     /**
      * Convert RequestBody to a object.

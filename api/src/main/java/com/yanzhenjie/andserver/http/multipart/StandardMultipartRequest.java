@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Yan Zhenjie.
+ * Copyright 2018 Zhenjie Yan.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,14 +15,15 @@
  */
 package com.yanzhenjie.andserver.http.multipart;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import android.text.TextUtils;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.yanzhenjie.andserver.http.HttpRequest;
 import com.yanzhenjie.andserver.http.RequestWrapper;
 import com.yanzhenjie.andserver.util.LinkedMultiValueMap;
 import com.yanzhenjie.andserver.util.MultiValueMap;
-import com.yanzhenjie.andserver.util.StringUtils;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -31,7 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Created by YanZhenjie on 2018/8/9.
+ * Created by Zhenjie Yan on 2018/8/9.
  */
 public class StandardMultipartRequest extends RequestWrapper implements MultipartRequest {
 
@@ -42,7 +43,8 @@ public class StandardMultipartRequest extends RequestWrapper implements Multipar
     private Map<String, String> mMultipartContentTypes;
 
     public StandardMultipartRequest(@NonNull HttpRequest request, @NonNull MultiValueMap<String, MultipartFile> mpFiles,
-        @NonNull MultiValueMap<String, String> mpParams, @NonNull Map<String, String> mpContentTypes) {
+                                    @NonNull MultiValueMap<String, String> mpParams,
+                                    @NonNull Map<String, String> mpContentTypes) {
         super(request);
         this.mRequest = request;
         this.mMultipartFiles = new LinkedMultiValueMap<>(Collections.unmodifiableMap(mpFiles));
@@ -95,7 +97,9 @@ public class StandardMultipartRequest extends RequestWrapper implements Multipar
     @NonNull
     @Override
     public List<String> getParameterNames() {
-        if (mMultipartParameters.isEmpty()) return mRequest.getParameterNames();
+        if (mMultipartParameters.isEmpty()) {
+            return mRequest.getParameterNames();
+        }
 
         List<String> paramNames = new LinkedList<>();
         List<String> names = mRequest.getParameterNames();
@@ -110,7 +114,7 @@ public class StandardMultipartRequest extends RequestWrapper implements Multipar
     @Override
     public String getParameter(@NonNull String name) {
         String value = mMultipartParameters.getFirst(name);
-        return StringUtils.isEmpty(value) ? mRequest.getParameter(name) : value;
+        return TextUtils.isEmpty(value) ? mRequest.getParameter(name) : value;
     }
 
     @NonNull

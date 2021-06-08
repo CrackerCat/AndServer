@@ -1,5 +1,5 @@
 /*
- * Copyright © 2018 YanZhenjie.
+ * Copyright © 2018 Zhenjie Yan.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,233 +15,151 @@
  */
 package com.yanzhenjie.andserver;
 
-import android.support.annotation.NonNull;
-
-import com.yanzhenjie.andserver.util.Executors;
-
-import org.apache.commons.io.Charsets;
-import org.apache.httpcore.ExceptionLogger;
-import org.apache.httpcore.config.ConnectionConfig;
-import org.apache.httpcore.config.SocketConfig;
-import org.apache.httpcore.impl.bootstrap.HttpServer;
-import org.apache.httpcore.impl.bootstrap.SSLServerSetupHandler;
-import org.apache.httpcore.impl.bootstrap.ServerBootstrap;
-
 import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.concurrent.TimeUnit;
 
+import javax.net.ServerSocketFactory;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLServerSocket;
 
 /**
- * Created by YanZhenjie on 2018/9/10.
+ * Created by Zhenjie Yan on 2018/9/10.
  */
-public class Server {
-
-    public static Builder newBuilder() {
-        return new Builder();
-    }
-
-    private final InetAddress mInetAddress;
-    private final int mPort;
-    private final int mTimeout;
-    private final SSLContext mSSLContext;
-    private final SSLInitializer mSSLInitializer;
-    private final ServerListener mListener;
-
-    private HttpServer mHttpServer;
-    private boolean isRunning;
-
-    private Server(Builder builder) {
-        this.mInetAddress = builder.mInetAddress;
-        this.mPort = builder.mPort;
-        this.mTimeout = builder.mTimeout;
-        this.mSSLContext = builder.mSSLContext;
-        this.mSSLInitializer = builder.mSSLInitializer;
-        this.mListener = builder.mListener;
-    }
+public interface Server {
 
     /**
      * Server running status.
      *
      * @return return true, not return false.
      */
-    public boolean isRunning() {
-        return isRunning;
-    }
+    boolean isRunning();
 
     /**
      * Start the server.
      */
-    public void startup() {
-        if (isRunning) return;
-
-        Executors.getInstance().submit(new Runnable() {
-            @Override
-            public void run() {
-                DispatcherHandler handler = new DispatcherHandler(AndServer.getContext());
-                ComponentRegister register = new ComponentRegister(AndServer.getContext());
-                register.register(handler);
-
-                mHttpServer = ServerBootstrap.bootstrap()
-                    .setSocketConfig(SocketConfig.custom()
-                        .setSoKeepAlive(true)
-                        .setSoReuseAddress(true)
-                        .setSoTimeout(mTimeout)
-                        .setTcpNoDelay(true)
-                        .build())
-                    .setConnectionConfig(
-                        ConnectionConfig.custom().setBufferSize(4 * 1024).setCharset(Charsets.UTF_8).build())
-                    .setLocalAddress(mInetAddress)
-                    .setListenerPort(mPort)
-                    .setSslContext(mSSLContext)
-                    .setSslSetupHandler(new SSLInitializerWrapper(mSSLInitializer))
-                    .setServerInfo("AndServer/2.0.0")
-                    .registerHandler("*", handler)
-                    .setExceptionLogger(ExceptionLogger.NO_OP)
-                    .create();
-                try {
-                    isRunning = true;
-                    mHttpServer.start();
-
-                    Executors.getInstance().post(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (mListener != null) mListener.onStarted();
-                        }
-                    });
-                    Runtime.getRuntime().addShutdownHook(new Thread() {
-                        @Override
-                        public void run() {
-                            mHttpServer.shutdown(3, TimeUnit.SECONDS);
-                        }
-                    });
-                } catch (final Exception e) {
-                    Executors.getInstance().post(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (mListener != null) mListener.onException(e);
-                        }
-                    });
-                }
-            }
-        });
-    }
+    void startup();
 
     /**
      * Quit the server.
      */
-    public void shutdown() {
-        if (!isRunning) return;
-
-        Executors.getInstance().execute(new Runnable() {
-            @Override
-            public void run() {
-                if (mHttpServer != null) mHttpServer.shutdown(3, TimeUnit.MINUTES);
-                Executors.getInstance().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (mListener != null) mListener.onStopped();
-                    }
-                });
-            }
-        });
-    }
-
-    private final class SSLInitializerWrapper implements SSLServerSetupHandler {
-
-        private final SSLInitializer mSSLSocketInitializer;
-
-        public SSLInitializerWrapper(@NonNull SSLInitializer initializer) {
-            this.mSSLSocketInitializer = initializer;
-        }
-
-        public void initialize(SSLServerSocket socket) throws SSLException {
-            mSSLSocketInitializer.onCreated(socket);
-        }
-    }
+    void shutdown();
 
     /**
-     * Get the network address.
+     * Get the local address of this server socket.
+     *
+     * @return {@link InetAddress}.
      *
      * @throws IllegalStateException if the server is not started, an IllegalStateException is thrown.
+     * @see ServerSocket#getInetAddress()
      */
-    public InetAddress getInetAddress() {
-        if (isRunning) return mHttpServer.getInetAddress();
-        throw new IllegalStateException("The server has not been started yet.");
-    }
+    InetAddress getInetAddress();
 
-    public static class Builder {
+    /**
+     * Returns the port number on which this socket is listening.
+     *
+     * @return the local port number to which this socket is bound or -1 if the socket is not bound yet.
+     *
+     * @throws IllegalStateException if the server is not started, an IllegalStateException is thrown.
+     * @see Socket#getLocalPort()
+     */
+    int getPort();
 
-        private InetAddress mInetAddress;
-        private int mPort;
-        private int mTimeout;
-        private SSLContext mSSLContext;
-        private SSLInitializer mSSLInitializer;
-        private ServerListener mListener;
-
-        private Builder() {
-        }
+    interface Builder<T extends Builder, S extends Server> {
 
         /**
          * Specified server need to monitor the ip address.
          */
-        public Builder inetAddress(InetAddress inetAddress) {
-            this.mInetAddress = inetAddress;
-            return this;
-        }
+        T inetAddress(InetAddress inetAddress);
 
         /**
          * Specify the port on which the server listens.
          */
-        public Builder port(int port) {
-            this.mPort = port;
-            return this;
-        }
+        T port(int port);
 
         /**
          * Connection and response timeout.
          */
-        public Builder timeout(int timeout, TimeUnit timeUnit) {
-            long timeoutMs = timeUnit.toMillis(timeout);
-            this.mTimeout = (int)Math.min(timeoutMs, Integer.MAX_VALUE);
-            return this;
-        }
+        T timeout(int timeout, TimeUnit timeUnit);
 
         /**
-         * Setting up the server is based on the SSL protocol.
+         * Assigns {@link ServerSocketFactory} instance.
          */
-        public Builder sslContext(SSLContext sslContext) {
-            this.mSSLContext = sslContext;
-            return this;
-        }
+        T serverSocketFactory(ServerSocketFactory factory);
 
         /**
-         * Set SSLServerSocket's initializer.
+         * Assigns {@link SSLContext} instance.
          */
-        public Builder sslSocketInitializer(SSLInitializer initializer) {
-            this.mSSLInitializer = initializer;
-            return this;
-        }
+        T sslContext(SSLContext sslContext);
+
+        /**
+         * Assigns {@link SSLSocketInitializer} instance.
+         */
+        T sslSocketInitializer(SSLSocketInitializer initializer);
 
         /**
          * Set the server listener.
          */
-        public Builder listener(ServerListener listener) {
-            this.mListener = listener;
-            return this;
-        }
+        T listener(Server.ServerListener listener);
 
         /**
          * Create a server.
          */
-        public Server build() {
-            return new Server(this);
-        }
+        S build();
     }
 
-    public interface ServerListener {
+    interface ProxyBuilder<T extends ProxyBuilder, S extends Server> {
+
+        /**
+         * Add host address to proxy.
+         *
+         * @param hostName such as: {@code www.example.com}, {@code api.example.com}, {@code 192.168.1.111}.
+         * @param proxyHost such as: {@code http://127.0.0.1:8080}, {@code http://localhost:8181}
+         */
+        T addProxy(String hostName, String proxyHost);
+
+        /**
+         * Specified server need to monitor the ip address.
+         */
+        T inetAddress(InetAddress inetAddress);
+
+        /**
+         * Specify the port on which the server listens.
+         */
+        T port(int port);
+
+        /**
+         * Connection and response timeout.
+         */
+        T timeout(int timeout, TimeUnit timeUnit);
+
+        /**
+         * Assigns {@link ServerSocketFactory} instance.
+         */
+        T serverSocketFactory(ServerSocketFactory factory);
+
+        /**
+         * Assigns {@link SSLContext} instance.
+         */
+        T sslContext(SSLContext sslContext);
+
+        /**
+         * Assigns {@link SSLSocketInitializer} instance.
+         */
+        T sslSocketInitializer(SSLSocketInitializer initializer);
+
+        /**
+         * Set the server listener.
+         */
+        T listener(Server.ServerListener listener);
+
+        /**
+         * Create a server.
+         */
+        S build();
+    }
+
+    interface ServerListener {
 
         /**
          * When the server is started.

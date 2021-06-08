@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Yan Zhenjie.
+ * Copyright 2018 Zhenjie Yan.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,12 @@
 package com.yanzhenjie.andserver.error;
 
 import com.yanzhenjie.andserver.util.MediaType;
-import com.yanzhenjie.andserver.util.StatusCode;
+import com.yanzhenjie.andserver.http.StatusCode;
 
 /**
- * Created by YanZhenjie on 2018/9/8.
+ * Created by Zhenjie Yan on 2018/9/8.
  */
-public class ContentNotSupportedException extends BasicException {
+public class ContentNotSupportedException extends HttpException {
 
     private static final String MESSAGE = "The content type [%s] is not supported.";
 

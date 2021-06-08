@@ -1,5 +1,5 @@
 /*
- * Copyright © 2016 Yan Zhenjie.
+ * Copyright © 2016 Zhenjie Yan.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,12 +18,13 @@ package com.yanzhenjie.andserver.sample;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 
 import com.yanzhenjie.loading.dialog.LoadingDialog;
 
@@ -31,7 +32,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 /**
- * Created by Yan Zhenjie on 2018/6/9.
+ * Created by Zhenjie Yan on 2018/6/9.
  */
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -147,11 +148,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void showDialog() {
-        if (mDialog == null) mDialog = new LoadingDialog(this);
-        if (!mDialog.isShowing()) mDialog.show();
+        if (mDialog == null) {
+            mDialog = new LoadingDialog(this);
+        }
+        if (!mDialog.isShowing()) {
+            mDialog.show();
+        }
     }
 
     private void closeDialog() {
-        if (mDialog != null && mDialog.isShowing()) mDialog.dismiss();
+        if (mDialog != null && mDialog.isShowing()) {
+            mDialog.dismiss();
+        }
     }
 }

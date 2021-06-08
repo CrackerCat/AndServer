@@ -1,5 +1,5 @@
 /*
- * Copyright © 2018 YanZhenjie.
+ * Copyright © 2018 Zhenjie Yan.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +15,8 @@
  */
 package com.yanzhenjie.andserver.framework.website;
 
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.yanzhenjie.andserver.framework.ETag;
 import com.yanzhenjie.andserver.framework.LastModified;
@@ -31,18 +31,18 @@ import com.yanzhenjie.andserver.http.ResponseBody;
 import java.io.IOException;
 
 /**
- * Created by YanZhenjie on 2018/9/4.
+ * Created by Zhenjie Yan on 2018/9/4.
  */
 public abstract class Website implements HandlerAdapter, ETag, LastModified {
 
     @Nullable
     @Override
-    public String getETag(@NonNull HttpRequest request) throws IOException {
+    public String getETag(@NonNull HttpRequest request) throws Throwable {
         return null;
     }
 
     @Override
-    public long getLastModified(@NonNull HttpRequest request) throws IOException {
+    public long getLastModified(@NonNull HttpRequest request) throws Throwable {
         return 0;
     }
 
@@ -52,22 +52,23 @@ public abstract class Website implements HandlerAdapter, ETag, LastModified {
         return new RequestHandler() {
             @Nullable
             @Override
-            public String getETag(@NonNull HttpRequest request) throws IOException {
+            public String getETag(@NonNull HttpRequest request) throws Throwable {
                 return Website.this.getETag(request);
             }
 
             @Override
-            public long getLastModified(@NonNull HttpRequest request) throws IOException {
+            public long getLastModified(@NonNull HttpRequest request) throws Throwable {
                 return Website.this.getLastModified(request);
             }
 
             @Override
-            public View handle(@NonNull HttpRequest request, @NonNull HttpResponse response) throws IOException {
-                return new BodyView(getBody(request));
+            public View handle(@NonNull HttpRequest request, @NonNull HttpResponse response) throws Throwable {
+                return new BodyView(getBody(request, response));
             }
         };
     }
 
     @NonNull
-    public abstract ResponseBody getBody(@NonNull HttpRequest request) throws IOException;
+    public abstract ResponseBody getBody(@NonNull HttpRequest request, @NonNull HttpResponse response)
+        throws IOException;
 }

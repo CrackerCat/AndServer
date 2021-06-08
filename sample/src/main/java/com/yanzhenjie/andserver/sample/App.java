@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Yan Zhenjie.
+ * Copyright 2018 Zhenjie Yan.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,8 @@ package com.yanzhenjie.andserver.sample;
 import android.app.Application;
 import android.content.Context;
 import android.os.Environment;
-import android.support.annotation.NonNull;
+
+import androidx.annotation.NonNull;
 
 import com.yanzhenjie.andserver.sample.util.FileUtils;
 import com.yanzhenjie.andserver.util.IOUtils;
@@ -26,7 +27,7 @@ import com.yanzhenjie.andserver.util.IOUtils;
 import java.io.File;
 
 /**
- * Created by YanZhenjie on 2018/6/9.
+ * Created by Zhenjie Yan on 2018/6/9.
  */
 public class App extends Application {
 
@@ -55,7 +56,9 @@ public class App extends Application {
     }
 
     private void initRootPath(Context context) {
-        if (mRootDir != null) return;
+        if (mRootDir != null) {
+            return;
+        }
 
         if (FileUtils.storageAvailable()) {
             mRootDir = Environment.getExternalStorageDirectory();
